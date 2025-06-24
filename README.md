@@ -32,7 +32,7 @@ Este projeto é um sistema simples de controle de empréstimos de livros de uma 
 
 ### 💻 Como usar
 
-Acesse:
+Acesse: https://maria-eduarda-gomes.github.io/Biblioteca/
 
 ---
 
