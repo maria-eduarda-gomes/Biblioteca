@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Empréstimos</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" />
+</head>
+<body class="bg-light">
+  <div class="container mt-5">
+    <h1 class="text-center mb-4">Controle de Empréstimos</h1>
+
+    <form id="emprestimoForm" class="mb-4">
+      <div class="mb-3">
+        <input type="text" id="codigoEmprestimo" class="form-control" placeholder="Código do Empréstimo" readonly />
+      </div>
+      <div class="mb-3">
+        <select id="livroEmprestimo" class="form-select" required>
+          <option value="">Selecione o livro</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <select id="visitanteEmprestimo" class="form-select" required>
+          <option value="">Selecione o visitante</option>
+        </select>
+      </div>
+      <div class="mb-3">
+        <input type="date" id="dataInicio" class="form-control" required />
+      </div>
+      <div class="mb-3">
+        <input type="date" id="dataTermino" class="form-control" required />
+      </div>
+      <button type="submit" class="btn btn-primary">Cadastrar Empréstimo</button>
+    </form>
+
+    <table class="table table-bordered">
+      <thead class="table-dark">
+        <tr>
+          <th>Código</th>
+          <th>Livro</th>
+          <th>Visitante</th>
+          <th>Período</th>
+          <th>Ações</th>
+        </tr>
+      </thead>
+      <tbody id="tabelaEmprestimos"></tbody>
+    </table>
+
+    <div class="d-flex justify-content-between mt-3">
+      <a href="TelaDeInicioBiblioteca.html" class="btn btn-outline-dark">Voltar ao Menu</a>
+      <button id="btnSair" class="btn btn-outline-danger">Encerrar Sessão</button>
+    </div>
+  </div>
+
+  <div class="modal fade" id="modalEdicao" tabindex="-1" aria-labelledby="modalEdicaoLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <form class="modal-content" id="formEdicao">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEdicaoLabel">Editar Empréstimo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
+        </div>
+        <div class="modal-body">
+          <input type="hidden" id="indexEdicao" />
+          <div class="mb-3">
+            <label for="dataInicioEdicao" class="form-label">Data Início</label>
+            <input type="date" id="dataInicioEdicao" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label for="dataTerminoEdicao" class="form-label">Data Término</label>
+            <input type="date" id="dataTerminoEdicao" class="form-control" required />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Salvar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    let emprestimos = JSON.parse(localStorage.getItem('emprestimos')) || [];
+    let proxCodigo = emprestimos.length + 1;
+
+    const livros = JSON.parse(localStorage.getItem('livros')) || [];
+    const visitantes = JSON.parse(localStorage.getItem('visitantes')) || [];
+
+    preencherSelects('livroEmprestimo', livros, 'numeracao', 'titulo');
+    preencherSelects('visitanteEmprestimo', visitantes, 'id', 'nome');
+
+    document.getElementById('codigoEmprestimo').value = gerarCodigo();
+
+    document.getElementById('emprestimoForm').addEventListener('submit', function (e) {
+      e.preventDefault();
+
+      const novoEmprestimo = {
+        codigo: document.getElementById('codigoEmprestimo').value,
+        livro: document.getElementById('livroEmprestimo').value,
+        visitante: document.getElementById('visitanteEmprestimo').value,
+        inicio: document.getElementById('dataInicio').value,
+        termino: document.getElementById('dataTermino').value,
+        devolvido: false
+      };
+
+      emprestimos.push(novoEmprestimo);
+      localStorage.setItem('emprestimos', JSON.stringify(emprestimos));
+
+      atualizarTabela();
+      this.reset();
+      document.getElementById('codigoEmprestimo').value = gerarCodigo();
+    });
+
+    function gerarCodigo() {
+      return `E${(proxCodigo++).toString().padStart(3, '0')}`;
+    }
+
+    function preencherSelects(id, data, key, label) {
+      const select = document.getElementById(id);
+      data.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item[key];
+        opt.textContent = `${item[key]} - ${item[label]}`;
+        select.appendChild(opt);
+      });
+    }
+
+    function formatarDataBr(dataISO) {
+      if (!dataISO) return '---';
+      const [ano, mes, dia] = dataISO.split('-');
+      return `${dia}/${mes}/${ano.slice(2)}`;
+    }
+
+    function atualizarTabela() {
+      const tbody = document.getElementById('tabelaEmprestimos');
+      tbody.innerHTML = '';
+
+      emprestimos.forEach(e => {
+        if (e.devolvido === undefined) e.devolvido = false;
+      });
+      localStorage.setItem('emprestimos', JSON.stringify(emprestimos));
+
+      emprestimos.forEach((e, i) => {
+        const livro = livros.find(l => l.numeracao == e.livro)?.titulo || 'Desconhecido';
+        const visitante = visitantes.find(v => v.id == e.visitante)?.nome || 'Desconhecido';
+
+        tbody.innerHTML += `
+          <tr>
+            <td>${e.codigo}</td>
+            <td>${livro}</td>
+            <td>${visitante}</td>
+            <td>${formatarDataBr(e.inicio)} até ${formatarDataBr(e.termino)}</td>
+            <td>
+              <button class="btn btn-sm btn-warning" onclick="abrirModalEdicao(${i})">Editar</button>
+              <button class="btn btn-sm btn-danger" onclick="excluirEmprestimo(${i})">Excluir</button>
+              ${
+                e.devolvido
+                  ? `<button class="btn btn-sm btn-secondary" disabled>Devolvido</button>`
+                  : `<button class="btn btn-sm btn-success" onclick="toggleDevolucao(${i})">Devolver</button>`
+              }
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    const modalEdicao = new bootstrap.Modal(document.getElementById('modalEdicao'));
+
+    window.abrirModalEdicao = function(index) {
+      const emprestimo = emprestimos[index];
+      document.getElementById('indexEdicao').value = index;
+      document.getElementById('dataInicioEdicao').value = emprestimo.inicio;
+      document.getElementById('dataTerminoEdicao').value = emprestimo.termino;
+      modalEdicao.show();
+    }
+
+    document.getElementById('formEdicao').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const index = document.getElementById('indexEdicao').value;
+      const inicio = document.getElementById('dataInicioEdicao').value;
+      const termino = document.getElementById('dataTerminoEdicao').value;
+
+      emprestimos[index].inicio = inicio;
+      emprestimos[index].termino = termino;
+      localStorage.setItem('emprestimos', JSON.stringify(emprestimos));
+      atualizarTabela();
+      modalEdicao.hide();
+      alert('Empréstimo atualizado com sucesso!');
+    });
+
+    window.excluirEmprestimo = function(index) {
+      if (confirm('Deseja excluir este empréstimo?')) {
+        emprestimos.splice(index, 1);
+        localStorage.setItem('emprestimos', JSON.stringify(emprestimos));
+        atualizarTabela();
+      }
+    }
+
+    window.toggleDevolucao = function(index) {
+      const emprestimo = emprestimos[index];
+      if (!emprestimo.devolvido) {
+        if (confirm(`Tem certeza de que gostaria de marcar o empréstimo ${emprestimo.codigo} como devolvido? Essa ação não pode ser desfeita! ⚠`)) {
+          emprestimo.devolvido = true;
+          emprestimo.dataDevolucao = new Date().toISOString().split('T')[0];
+          localStorage.setItem('emprestimos', JSON.stringify(emprestimos));
+          atualizarTabela();
+          alert('Livro marcado como devolvido!');
+        }
+      }
+    };
+
+    document.getElementById('btnSair').addEventListener('click', function () {
+      if (confirm('Deseja realmente encerrar a sessão?')) {
+        window.location.href = 'index.html';
+      }
+    });
+
+    atualizarTabela();
+  </script>
+</body>
+</html>
