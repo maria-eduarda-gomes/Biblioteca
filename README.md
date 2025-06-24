@@ -38,5 +38,5 @@ Acesse:
 
 ### ⚠️ Aviso
 
-💡 Este projeto **não possui backend** — todas as informações são salvas no `localStorage`. Ao limpar o cache ou acessar de outro dispositivo, os dados não serão mantidos.
+💡 Este projeto **não possui backend** — todas as informações são salvas no localStorage. Ao limpar o cache ou acessar de outro dispositivo, os dados não serão mantidos.
 
